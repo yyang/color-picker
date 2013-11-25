@@ -1,8 +1,5 @@
 (function(){
 
-var step = 0.157;
-var sequence = 0;
-var colors = [];
 var rP = 0.299, gP = 0.587, bP = 0.114;
 
 /* HSP Color Model integraded according to Darel Rex Finley.
@@ -429,5 +426,7 @@ $declare(Color, {
     return new Color('hsp', 0, 0, this.hsp.p);
   }
 });
+
+$explict('Color', Color);
 
 })();
