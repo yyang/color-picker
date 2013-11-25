@@ -273,51 +273,21 @@ function fromRGBtoHSV(colorObj) {
   };
 }
 
-/* The following code is re-distributed from @ashi009's work on apollo.js.
- * It provides a save method to define object prototype.
- */
-
-function $define(object, prototype) {
-  var setterGetterPattern = /^(set|get)([A-Z])(.*)/;
-  var setterGetters = {};
-  for (var key in prototype) {
-    var matches = setterGetterPattern.exec(key);
-    var fn = prototype[key];
-    Object.defineProperty(object, key, {
-      value: fn,
-      writeable: true // false
-    });
-    if (matches) {
-      if (matches[1] === 'set') {
-        if (fn.length === 1)
-          continue;
-      } else {
-        if (fn.length === 0)
-          continue;
-      }
-      var name = matches[2].toLowerCase() + matches[3];
-      if (!setterGetters.hasOwnProperty(name))
-        setterGetters[name] = {};
-      setterGetters[name][matches[1]] = fn;
-    }
-  }
-  Object.defineProperties(object, setterGetters);
-}
-
-function $declare(object, prototype) {
-  object.prototype.constructor = object;
-  $define(object.prototype, prototype);
-}
-
-function $explict(name, obj) {
-  window[name] = obj;
-}
-
 /* The following methods are used internally.
  */
 
-function parseColor(colorString) {
 
+function parseColor(colorString) {
+  var colorArr = []
+  colorArr.push(/^[a-zA-Z]+/.exec(colorString));
+  colorArr.concat(/\((.*?)\)/.exec(colorString)[1].split(',').map(function(el){
+      return parseFloat(el, 10);
+  }));
+  if (colorArr.length === 4) {
+    return colorArr;
+  } else {
+    throw 'Invalid color.';
+  }
 }
 
 function getHexString(rgbColorObj) {
@@ -346,41 +316,24 @@ function getColorString(mode, color, alpha) {
   return mode + '(' + colorDigits.toString() + ')';
 }
 
-// Constructor
 function Color() {
-  if (arguments.length === 0) {
-    throw 'Color has not been specified';
-  } else if (arguments.length === 1) {
-    var pasedColor = parseColor(arguments[0]);
-    //TODO: Color Parser!
-    //return new Color(parsedColor.mode, parsedColor.arg1, parsedColor.arg2, parsedColor.arg3);
-  } else if (arguments.length !== 4) {
-    throw 'Invalid number of arguments';
-  }
-  switch (arguments[0]) {
-    case 'rgb':
-      this.rgb = {r: arguments[1], g: arguments[2], b: arguments[3]};
-      this.hsp = fromRGBtoHSP(this.rgb);
+  switch (arguments.length) {
+    case 0:
+      throw 'Color has not been specified';
+    case 1:
+      var initArr = parseColor(arguments[0]);
+      this.initialize(initArr);
       break;
-    case 'hsp':
-      this.hsp = {h: arguments[1], s: arguments[2], p: arguments[3]};
-      this.rgb = fromHSPtoRGB(this.hsp.h, this.hsp.s, this.hsp.p);
+    case 4:
+      var initArr = [].slice.call(arguments);
+      this.initialize(initArr);
       break;
-    case 'hsv':
-      this.rgb = fromHSVtoRGB(arguments[1], arguments[2], arguments[3]);
-      this.hsp = fromRGBtoHSP(this.rgb);
-      break;
-    case 'hsl':
-      this.rgb = fromHSLtoRGB(arguments[1], arguments[2], arguments[3]);
-      this.hsp = fromRGBtoHSP(this.rgb);
-      break;
-    default: 
-      throw 'Invalid color mode.'
+    default:
+      throw 'Invalid number of arguments';
   }
   return this;
 }
 
-// Methods
 $declare(Color, {
   getColor: function() {
     if (arguments.length === 0) {
@@ -390,7 +343,7 @@ $declare(Color, {
     switch (mode) {
       case 'hex':
         return getHexString(this.rgb);
-      case 'hexString':1
+      case 'hexString':
         return '#' + getHexString(this.rgb);
       case 'rgb':
         return this.rgb;
@@ -424,6 +377,28 @@ $declare(Color, {
   },
   greyscale: function() {
     return new Color('hsp', 0, 0, this.hsp.p);
+  },
+  initialize: function(initArr) {
+    switch (initArr[0]) {
+      case 'rgb':
+        this.rgb = {r: initArr[1], g: initArr[2], b: initArr[3]};
+        this.hsp = fromRGBtoHSP(this.rgb);
+        break;
+      case 'hsp':
+        this.hsp = {h: initArr[1], s: initArr[2], p: initArr[3]};
+        this.rgb = fromHSPtoRGB(this.hsp.h, this.hsp.s, this.hsp.p);
+        break;
+      case 'hsv':
+        this.rgb = fromHSVtoRGB(initArr[1], initArr[2], initArr[3]);
+        this.hsp = fromRGBtoHSP(this.rgb);
+        break;
+      case 'hsl':
+        this.rgb = fromHSLtoRGB(initArr[1], initArr[2], initArr[3]);
+        this.hsp = fromRGBtoHSP(this.rgb);
+        break;
+      default: 
+        throw 'Invalid color mode.'
+    }
   }
 });
 
